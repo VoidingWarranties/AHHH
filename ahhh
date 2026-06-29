@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
+con_file="$(dirname "$0")/Containerfile"
+ctx_dir="$(mktemp -d)"
+img_tag="ahhh-base"
+
+container system start
+container network create "$env_name"
+trap 'container network delete "$env_name" > /dev/null' EXIT
+container build -t "$img_tag" --file "$con_file" "$ctx_dir"
+container run \
+  --rm -it \
+  --network "$env_name" \
+  --uid 1000 --gid 1000 \
+  --cap-drop ALL \
+  --read-only \
+  --tmpfs /tmp \
+  --tmpfs /home/agent \
+  --init \
+  --memory 4G \
+  --volume "$(pwd)":/work \
+  --cwd /work \
+  "$img_tag" \
+  claude
