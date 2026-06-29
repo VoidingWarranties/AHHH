@@ -22,6 +22,7 @@ ephemeral isolated environments using Apple's Container tool.
 ### P1
 - Assign a container its name, description, and color for differentiation
 - NixOS as a base.
+- Persistent nix store that's shared by all environments.
 
 ### P2
 - Automate my git worktree workflow.
@@ -29,3 +30,5 @@ ephemeral isolated environments using Apple's Container tool.
   version control APIs.
 - Fork a container to copy the agent transcript and current container state.
   between environments.
+- Add config to allow auto updating image every x days (if not using NixOS, not
+  sure this is compatible with NixOS).
