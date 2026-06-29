@@ -1,5 +1,5 @@
 FROM alpine:3
-RUN apk add --no-cache ca-certificates git
+RUN apk add --no-cache ca-certificates git bash
 # Non-root user matching the --uid and --gid flags passed to `container run` in
 # ahhh. Creating the passwd/group entry keeps tools that read $HOME / look up
 # the uid happy.
@@ -16,5 +16,6 @@ RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
 RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
   [ -z "${setuidbins-x}" ] || { printf 'ERROR: setuid binaries present:\n%s\n' "$setuidbins" >&2; exit 1; }
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+ENV SHELL=/bin/bash
 USER agent
 WORKDIR /home/agent
