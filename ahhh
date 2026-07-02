@@ -2,6 +2,7 @@
 set -euo pipefail
 
 env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
+[ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
 dir_name="$(dirname "$0")"
 con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
@@ -23,4 +24,4 @@ container run \
   --volume "$(pwd)":/work \
   --cwd /work \
   "$img_tag" \
-  claude
+  "$@"
