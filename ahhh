@@ -6,6 +6,16 @@ env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
 dir_name="$(dirname "$0")"
 con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
+keychain_service="ahhh-claude-oauth-token"
+oauth_token="$(security find-generic-password -s "$keychain_service" -w)" || {
+  cat >&2 <<EOF
+No Claude OAuth token in the Keychain. One-time setup:
+  1. Run: claude setup-token
+  2. Store the printed token:
+     security add-generic-password -U -s $keychain_service -a "\$USER" -w
+EOF
+  exit 1
+}
 
 container system start
 container network create "$env_name"
@@ -23,5 +33,6 @@ container run \
   --memory 4G \
   --volume "$(pwd)":/work \
   --cwd /work \
+  --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token" \
   "$img_tag" \
   "$@"
