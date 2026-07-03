@@ -2,14 +2,14 @@
 set -euo pipefail
 
 env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
-con_file="$(dirname "$0")/Containerfile"
-ctx_dir="$(mktemp -d)"
+dir_name="$(dirname "$0")"
+con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
 
 container system start
 container network create "$env_name"
 trap 'container network delete "$env_name" > /dev/null' EXIT
-container build -t "$img_tag" --file "$con_file" "$ctx_dir"
+container build -t "$img_tag" --file "$con_file" "$dir_name"
 container run \
   --rm -it \
   --network "$env_name" \

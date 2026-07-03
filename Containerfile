@@ -19,3 +19,4 @@ ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 ENV SHELL=/bin/bash
 USER agent
 WORKDIR /home/agent
+COPY claude.json .claude.json
