@@ -5,30 +5,42 @@ ephemeral isolated environments using Apple's Container tool.
 
 ## Goals
 
-- Isolate environments from the host.
-- Isolate environments from other environments.
-- Allow internet access from environments.
-- Lock down every possible surface area.
-- Base image is as minimal as possible.
+- [x] Isolate environments from the host.
+- [x] Isolate environments from other environments.
+- [x] Allow internet access from environments.
+- [x] Lock down every possible surface area.
+- [x] Base image is as minimal as possible.
+- [x] Ephemeral environments.
+- [ ] Persistent environments.
 
 ## Future
 
 ### P0: Good default ergonomics
-- Set GIT_AUTHOR_{NAME,EMAIL} based on global config.
-- Configure agent authentication.
-- Copy the host's user-level agent configs into containers.
-- Share read/write access to the current directory if it is a git repo.
+- [ ] Default Claude settings
+  - [ ] Authenticated
+  - [x] Setup (skips onboarding)
+  - [ ] Trusts the current directory
+- [ ] Set GIT_AUTHOR_{NAME,EMAIL} based on global config.
+- [ ] Warn or error if the current directory is not a git repo.
 
-### P1
-- Assign a container its name, description, and color for differentiation
-- NixOS as a base.
-- Persistent nix store that's shared by all environments.
+### P1: Customized ergonomics
+- [ ] Copy the host's user-level agent configs into containers.
+- [ ] Assign a container its name, description, and color for differentiation
+- [ ] NixOS as a base.
 
 ### P2
-- Automate my git worktree workflow.
-- Auth proxy so no credentials are exposed to containers. For both LLM and
-  version control APIs.
-- Fork a container to copy the agent transcript and current container state.
-  between environments.
-- Add config to allow auto updating image every x days (if not using NixOS, not
-  sure this is compatible with NixOS).
+- [ ] Persistent nix store that's shared by all environments.
+- [ ] Auth proxy so no credentials are exposed to containers.
+  - [ ] LLM creds.
+  - [ ] Version control creds. By default don't give the environment VCS creds
+        (or an opaque pointer to VCS creds).
+- [ ] Automate my git worktree workflow.
+- [ ] Fork a container to copy the agent transcript and current container
+      state. between environments.
+- [ ] Add config to allow auto updating image every x days (if not using NixOS,
+      not sure this is compatible with NixOS).
+
+### P3
+- [ ] Support for other harnesses.
+- [ ] Secure storage of agent authentication OAuth token on host machine
+      (i.e. integrate as a Secure Enclave backed Keychain entry)
