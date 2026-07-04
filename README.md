@@ -17,9 +17,10 @@ ephemeral isolated environments using Apple's Container tool.
 
 ### P0: Good default ergonomics
 - [ ] Default Claude settings
-  - [ ] Authenticated
+  - [x] Authenticated
   - [x] Setup (skips onboarding)
   - [ ] Trusts the current directory
+  - [ ] Skips the --dangerously-skip-permissions check
 - [ ] Set GIT_AUTHOR_{NAME,EMAIL} based on global config.
 - [ ] Warn or error if the current directory is not a git repo.
 
