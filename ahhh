@@ -23,6 +23,7 @@ trap 'container network delete "$env_name" > /dev/null' EXIT
 container build -t "$img_tag" --file "$con_file" "$dir_name"
 container run \
   --rm -it \
+  --name "$env_name" \
   --network "$env_name" \
   --uid 1000 --gid 1000 \
   --cap-drop ALL \
