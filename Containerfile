@@ -15,8 +15,10 @@ RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
 # be the last RUN to be effective.
 RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
   [ -z "${setuidbins-x}" ] || { printf 'ERROR: setuid binaries present:\n%s\n' "$setuidbins" >&2; exit 1; }
+COPY --chmod=0755 entrypoint /usr/local/bin/entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+COPY claude.json /usr/share/ahhh/.claude.json
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 ENV SHELL=/bin/bash
 USER agent
 WORKDIR /home/agent
-COPY claude.json .claude.json
