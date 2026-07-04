@@ -1,3 +1,8 @@
 {
-  "hasCompletedOnboarding": true
+  "hasCompletedOnboarding": true,
+  "projects": {
+    "/workspace": {
+      "hasTrustDialogAccepted": true
+    }
+  }
 }
