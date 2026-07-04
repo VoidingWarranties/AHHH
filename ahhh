@@ -32,8 +32,8 @@ container run \
   --tmpfs /home/agent \
   --init \
   --memory 4G \
-  --volume "$(pwd)":/work \
-  --cwd /work \
+  --volume "$(pwd)":/workspace \
+  --cwd /workspace \
   --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token" \
   "$img_tag" \
   "$@"
