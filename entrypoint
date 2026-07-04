@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 set -eu
 
-[ -e "$HOME/.claude.json" ] || cp /usr/share/ahhh/.claude.json "$HOME/.claude.json"
+[ -n "$(ls -A "$HOME")" ] || cp -R /usr/share/ahhh/. "$HOME"
 exec "$@"
