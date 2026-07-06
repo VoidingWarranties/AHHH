@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Parse args.
 env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
 [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
+
+# Validate preconditions:
+# - Current dir is a git repo.
+git rev-parse --show-toplevel > /dev/null
+
 dir_name="$(dirname "$0")"
 con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"

@@ -22,7 +22,7 @@ ephemeral isolated environments using Apple's Container tool.
   - [x] Trusts the current directory
   - [x] Skips the --dangerously-skip-permissions check
 - [x] Set GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} based on the host's git config.
-- [ ] Warn or error if the current directory is not a git repo.
+- [x] Error if the current directory is not a git repo.
 
 ### P1: Customized ergonomics
 - [ ] Copy the host's user-level agent configs into containers.
