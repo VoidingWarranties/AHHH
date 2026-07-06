@@ -21,7 +21,7 @@ ephemeral isolated environments using Apple's Container tool.
   - [x] Setup (skips onboarding)
   - [x] Trusts the current directory
   - [x] Skips the --dangerously-skip-permissions check
-- [ ] Set GIT_AUTHOR_{NAME,EMAIL} based on global config.
+- [x] Set GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} based on the host's git config.
 - [ ] Warn or error if the current directory is not a git repo.
 
 ### P1: Customized ergonomics

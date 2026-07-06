@@ -38,5 +38,11 @@ run_args=(
   --env ANTHROPIC_MODEL
   --env CLAUDE_CODE_EFFORT_LEVEL
   --env CLAUDE_CODE_SUBAGENT_MODEL
+  # Effective (not --global) config so includeIf/local overrides apply;
+  # committer vars too: git refuses to commit knowing only the author.
+  --env GIT_AUTHOR_NAME="$(git config user.name)"
+  --env GIT_AUTHOR_EMAIL="$(git config user.email)"
+  --env GIT_COMMITTER_NAME="$(git config user.name)"
+  --env GIT_COMMITTER_EMAIL="$(git config user.email)"
 )
 container run "${run_args[@]}" "$img_tag" "$@"
