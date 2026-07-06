@@ -26,6 +26,9 @@ ephemeral isolated environments using Apple's Container tool.
 
 ### P1: Customized ergonomics
 - [ ] Copy the host's user-level agent configs into containers.
+  - [x] env vars, e.g. `ANTHROPIC_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, and
+        `CLAUDE_CODE_EFFORT_LEVEL`
+  - [ ] Global CLAUDE.md
 - [ ] Assign a container its name, description, and color for differentiation
 - [ ] NixOS as a base.
 

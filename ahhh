@@ -35,5 +35,8 @@ container run \
   --volume "$(pwd)":/workspace \
   --cwd /workspace \
   --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token" \
+  --env ANTHROPIC_MODEL \
+  --env CLAUDE_CODE_EFFORT_LEVEL \
+  --env CLAUDE_CODE_SUBAGENT_MODEL \
   "$img_tag" \
   "$@"
