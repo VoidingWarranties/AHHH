@@ -21,22 +21,22 @@ container system start
 container network create "$env_name"
 trap 'container network delete "$env_name" > /dev/null' EXIT
 container build -t "$img_tag" --file "$con_file" "$dir_name"
-container run \
-  --rm -it \
-  --name "$env_name" \
-  --network "$env_name" \
-  --uid 1000 --gid 1000 \
-  --cap-drop ALL \
-  --read-only \
-  --tmpfs /tmp \
-  --tmpfs /home/agent \
-  --init \
-  --memory 4G \
-  --volume "$(pwd)":/workspace \
-  --cwd /workspace \
-  --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token" \
-  --env ANTHROPIC_MODEL \
-  --env CLAUDE_CODE_EFFORT_LEVEL \
-  --env CLAUDE_CODE_SUBAGENT_MODEL \
-  "$img_tag" \
-  "$@"
+run_args=(
+  --rm -it
+  --name "$env_name"
+  --network "$env_name"
+  --uid 1000 --gid 1000
+  --cap-drop ALL
+  --read-only
+  --tmpfs /tmp
+  --tmpfs /home/agent
+  --init
+  --memory 4G
+  --volume "$(pwd)":/workspace
+  --cwd /workspace
+  --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token"
+  --env ANTHROPIC_MODEL
+  --env CLAUDE_CODE_EFFORT_LEVEL
+  --env CLAUDE_CODE_SUBAGENT_MODEL
+)
+container run "${run_args[@]}" "$img_tag" "$@"
