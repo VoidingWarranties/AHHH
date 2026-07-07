@@ -27,10 +27,10 @@ ephemeral isolated environments using Apple's Container tool.
 - [x] Global CLAUDE.md describing the environment.
 
 ### P1: Customized ergonomics
-- [ ] Copy the host's user-level agent configs into containers.
+- [x] Copy the host's user-level agent configs into containers.
   - [x] env vars, e.g. `ANTHROPIC_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, and
         `CLAUDE_CODE_EFFORT_LEVEL`
-  - [ ] Host's global CLAUDE.md
+  - [x] Host's global CLAUDE.md
 - [ ] Assign a container its name, description, and color for differentiation
 
 ### P2
