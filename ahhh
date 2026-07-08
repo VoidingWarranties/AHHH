@@ -9,7 +9,9 @@ env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
 # - Current dir is a git repo.
 git rev-parse --show-toplevel > /dev/null
 
-dir_name="$(dirname "$0")"
+# Use realpath to ensure the real path to ahhh is used even when it is invoked
+# from a symlink.
+dir_name="$(dirname "$(realpath "$0")")"
 con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
 keychain_service="ahhh-claude-oauth-token"
