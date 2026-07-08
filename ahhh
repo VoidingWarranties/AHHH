@@ -38,6 +38,7 @@ run_args=(
   --read-only
   --tmpfs /tmp
   --tmpfs /home/agent
+  --tmpfs /nix
   --init
   --memory 4G
   --volume "$(pwd)":/workspace

@@ -23,14 +23,15 @@ ephemeral isolated environments using Apple's Container tool.
   - [x] Skips the --dangerously-skip-permissions check
 - [x] Set GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} based on the host's git config.
 - [x] Error if the current directory is not a git repo.
+- [x] Provide Nix to agents for isolated package management.
+- [x] Global CLAUDE.md describing the environment.
 
 ### P1: Customized ergonomics
 - [ ] Copy the host's user-level agent configs into containers.
   - [x] env vars, e.g. `ANTHROPIC_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, and
         `CLAUDE_CODE_EFFORT_LEVEL`
-  - [ ] Global CLAUDE.md
+  - [ ] Host's global CLAUDE.md
 - [ ] Assign a container its name, description, and color for differentiation
-- [ ] NixOS as a base.
 
 ### P2
 - [ ] Persistent nix store that's shared by all environments.

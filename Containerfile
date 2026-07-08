@@ -1,9 +1,20 @@
 FROM alpine:3
-RUN apk add --no-cache ca-certificates git bash
+RUN apk add --no-cache ca-certificates git bash curl
 # Non-root user matching the --uid and --gid flags passed to `container run` in
 # ahhh. Creating the passwd/group entry keeps tools that read $HOME / look up
 # the uid happy.
 RUN addgroup -g 1000 agent && adduser -D -u 1000 -G agent agent
+# apk's nix is packaged for multi-user mode, which needs root. --no-scripts
+# skips creating the unused nixbld users; rm the other multi-user pieces.
+RUN apk add --no-cache --no-scripts nix \
+  && rm /etc/profile.d/nix-remote.sh /etc/profile.d/nix-daemon.sh /usr/sbin/nix-daemon
+# Replace apk's daemon-oriented config. `store = local` makes non-root nix use
+# the /nix tmpfs mounted by ahhh instead of a chroot store under $HOME.
+RUN printf '%s\n' \
+    'experimental-features = nix-command flakes' \
+    'sandbox-fallback = false' \
+    'store = local' \
+    > /etc/nix/nix.conf
 # Signature checksum is from Anthropic's Advanced Setup guide:
 # https://code.claude.com/docs/en/setup#apk
 RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
