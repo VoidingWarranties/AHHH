@@ -1,5 +1,5 @@
 FROM alpine:3
-RUN apk add --no-cache ca-certificates git bash curl
+RUN apk add --no-cache ca-certificates git bash curl earlyoom
 # Non-root user matching the --uid and --gid flags passed to `container run` in
 # ahhh. Creating the passwd/group entry keeps tools that read $HOME / look up
 # the uid happy.

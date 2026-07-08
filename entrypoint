@@ -2,4 +2,7 @@
 set -eu
 
 [ -n "$(ls -A "$HOME")" ] || cp -R /usr/share/ahhh/. "$HOME"
+# Kill memory hogs early: with no swap the guest livelocks before kernel OOM.
+# --avoid: prefer claude's children over claude, whose death ends the container.
+earlyoom -r 0 --avoid claude >/tmp/earlyoom.log 2>&1 &
 exec "$@"
