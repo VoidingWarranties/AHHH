@@ -55,6 +55,10 @@ run_args=(
   --env ANTHROPIC_MODEL
   --env CLAUDE_CODE_EFFORT_LEVEL
   --env CLAUDE_CODE_SUBAGENT_MODEL
+  # Forward terminal env vars needed to make it look good.
+  --env TERM
+  --env COLORTERM
+  --env TERM_PROGRAM
   # Effective (not --global) config so includeIf/local overrides apply;
   # committer vars too: git refuses to commit knowing only the author.
   --env GIT_AUTHOR_NAME="$(git config user.name)"
