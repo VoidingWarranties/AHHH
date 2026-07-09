@@ -1,71 +1,79 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Parse args.
-env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
-[ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
-
-# Validate preconditions:
-# - Current dir is a git repo.
-git rev-parse --show-toplevel > /dev/null
-
 # Use realpath to ensure the real path to ahhh is used even when it is invoked
 # from a symlink.
 dir_name="$(dirname "$(realpath "$0")")"
 con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
 keychain_service="ahhh-claude-oauth-token"
-oauth_token="$(security find-generic-password -s "$keychain_service" -w)" || {
-  cat >&2 <<EOF
+
+build_image() {
+  # Copy the host's global agent configs into the image's $HOME config seed.
+  claude_md_glbl="$HOME/.claude/CLAUDE.md"
+  claude_md_copy="$dir_name/configs/.claude/HOST_CLAUDE.md"
+  # Avoid potential symlink shenanigans and rm before copying.
+  rm -f "$claude_md_copy"
+  [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
+  install -m 644 "$claude_md_glbl" "$claude_md_copy"
+
+  container build -t "$img_tag" --file "$con_file" "$dir_name"
+}
+
+cmd_run() {
+  env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
+  [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
+
+  # Validate preconditions:
+  # - Current dir is a git repo.
+  git rev-parse --show-toplevel > /dev/null
+
+  oauth_token="$(security find-generic-password -s "$keychain_service" -w)" || {
+    cat >&2 <<EOF
 No Claude OAuth token in the Keychain. One-time setup:
   1. Run: claude setup-token
   2. Store the printed token:
      security add-generic-password -U -s $keychain_service -a "\$USER" -w
 EOF
-  exit 1
+    exit 1
+  }
+
+  container system start
+  build_image
+  container network create "$env_name"
+  trap 'container network delete "$env_name" > /dev/null' EXIT
+  # Effective (not --global) config so includeIf/local overrides apply.
+  git_name="$(git config user.name)"
+  git_email="$(git config user.email)"
+  run_args=(
+    --rm -it
+    --name "$env_name"
+    --network "$env_name"
+    --uid 1000 --gid 1000
+    --cap-drop ALL
+    --read-only
+    --tmpfs /tmp
+    --tmpfs /home/agent
+    --tmpfs /nix
+    --init
+    --memory 4G
+    --volume "$PWD":/workspace
+    --cwd /workspace
+    --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token"
+    --env ANTHROPIC_MODEL
+    --env CLAUDE_CODE_EFFORT_LEVEL
+    --env CLAUDE_CODE_SUBAGENT_MODEL
+    # Forward terminal env vars needed to make it look good.
+    --env TERM
+    --env COLORTERM
+    --env TERM_PROGRAM
+    # Committer vars too: git refuses to commit knowing only the author.
+    --env GIT_AUTHOR_NAME="$git_name"
+    --env GIT_AUTHOR_EMAIL="$git_email"
+    --env GIT_COMMITTER_NAME="$git_name"
+    --env GIT_COMMITTER_EMAIL="$git_email"
+  )
+  container run "${run_args[@]}" "$img_tag" "$@"
 }
 
-# Copy the host's global agent configs into the image's $HOME config seed.
-claude_md_glbl="$HOME/.claude/CLAUDE.md"
-claude_md_copy="$dir_name/configs/.claude/HOST_CLAUDE.md"
-# Avoid potential symlink shenanigans and rm before copying.
-rm -f "$claude_md_copy"
-[ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
-install -m 644 "$claude_md_glbl" "$claude_md_copy"
-
-container system start
-container network create "$env_name"
-trap 'container network delete "$env_name" > /dev/null' EXIT
-container build -t "$img_tag" --file "$con_file" "$dir_name"
-# Effective (not --global) config so includeIf/local overrides apply.
-git_name="$(git config user.name)"
-git_email="$(git config user.email)"
-run_args=(
-  --rm -it
-  --name "$env_name"
-  --network "$env_name"
-  --uid 1000 --gid 1000
-  --cap-drop ALL
-  --read-only
-  --tmpfs /tmp
-  --tmpfs /home/agent
-  --tmpfs /nix
-  --init
-  --memory 4G
-  --volume "$PWD":/workspace
-  --cwd /workspace
-  --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token"
-  --env ANTHROPIC_MODEL
-  --env CLAUDE_CODE_EFFORT_LEVEL
-  --env CLAUDE_CODE_SUBAGENT_MODEL
-  # Forward terminal env vars needed to make it look good.
-  --env TERM
-  --env COLORTERM
-  --env TERM_PROGRAM
-  # Committer vars too: git refuses to commit knowing only the author.
-  --env GIT_AUTHOR_NAME="$git_name"
-  --env GIT_AUTHOR_EMAIL="$git_email"
-  --env GIT_COMMITTER_NAME="$git_name"
-  --env GIT_COMMITTER_EMAIL="$git_email"
-)
-container run "${run_args[@]}" "$img_tag" "$@"
+cmd_run "$@"
