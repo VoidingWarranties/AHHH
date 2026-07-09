@@ -57,7 +57,7 @@ cmd_run() {
   # - Current dir is a git repo.
   git rev-parse --show-toplevel > /dev/null
 
-  oauth_token="$(security find-generic-password -s "$keychain_service" -w)" || {
+  export CLAUDE_CODE_OAUTH_TOKEN="$(security find-generic-password -s "$keychain_service" -w)" || {
     cat >&2 <<EOF
 No Claude OAuth token in the Keychain. One-time setup:
   1. Run: claude setup-token
@@ -88,7 +88,8 @@ EOF
     --memory 4G
     --volume "$PWD":/workspace
     --cwd /workspace
-    --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token"
+    # Claude-specific env vars.
+    --env CLAUDE_CODE_OAUTH_TOKEN
     --env ANTHROPIC_MODEL
     --env CLAUDE_CODE_EFFORT_LEVEL
     --env CLAUDE_CODE_SUBAGENT_MODEL
