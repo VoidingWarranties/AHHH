@@ -8,6 +8,18 @@ con_file="$dir_name/Containerfile"
 img_tag="ahhh-base"
 keychain_service="ahhh-claude-oauth-token"
 
+usage() {
+  cat >&2 <<EOF
+usage: ahhh build [--update]
+       ahhh run <env-name> [command...]
+
+build  (re)build the image; --update refreshes the base image and packages
+run    run a command (default: claude --dangerously-skip-permissions) in an
+       ephemeral environment, building the image if it is missing
+EOF
+  exit 1
+}
+
 build_image() {
   # Copy the host's global agent configs into the image's $HOME config seed.
   claude_md_glbl="$HOME/.claude/CLAUDE.md"
@@ -17,11 +29,28 @@ build_image() {
   [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
   install -m 644 "$claude_md_glbl" "$claude_md_copy"
 
-  container build -t "$img_tag" --file "$con_file" "$dir_name"
+  container build "$@" -t "$img_tag" --file "$con_file" "$dir_name"
+}
+
+cmd_build() {
+  update=''
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --update) update='true' ;;
+      *) usage ;;
+    esac
+    shift
+  done
+  # --no-cache reruns every step; --pull stops FROM resolving to a stale
+  # locally cached base image.
+  [ "$update" != 'true' ] || set -- --no-cache --pull
+  container system start
+  build_image "$@"
 }
 
 cmd_run() {
-  env_name="ahhh-${1:?usage: ahhh <env-name> [command...]}"; shift
+  [ $# -ge 1 ] || usage
+  env_name="ahhh-$1"; shift
   [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
 
   # Validate preconditions:
@@ -39,7 +68,7 @@ EOF
   }
 
   container system start
-  build_image
+  container image inspect "$img_tag" > /dev/null 2>&1 || build_image
   container network create "$env_name"
   trap 'container network delete "$env_name" > /dev/null' EXIT
   # Effective (not --global) config so includeIf/local overrides apply.
@@ -76,4 +105,8 @@ EOF
   container run "${run_args[@]}" "$img_tag" "$@"
 }
 
-cmd_run "$@"
+case "${1-}" in
+  build) shift; cmd_build "$@" ;;
+  run) shift; cmd_run "$@" ;;
+  *) usage ;;
+esac
