@@ -37,6 +37,9 @@ container system start
 container network create "$env_name"
 trap 'container network delete "$env_name" > /dev/null' EXIT
 container build -t "$img_tag" --file "$con_file" "$dir_name"
+# Effective (not --global) config so includeIf/local overrides apply.
+git_name="$(git config user.name)"
+git_email="$(git config user.email)"
 run_args=(
   --rm -it
   --name "$env_name"
@@ -49,7 +52,7 @@ run_args=(
   --tmpfs /nix
   --init
   --memory 4G
-  --volume "$(pwd)":/workspace
+  --volume "$PWD":/workspace
   --cwd /workspace
   --env CLAUDE_CODE_OAUTH_TOKEN="$oauth_token"
   --env ANTHROPIC_MODEL
@@ -59,11 +62,10 @@ run_args=(
   --env TERM
   --env COLORTERM
   --env TERM_PROGRAM
-  # Effective (not --global) config so includeIf/local overrides apply;
-  # committer vars too: git refuses to commit knowing only the author.
-  --env GIT_AUTHOR_NAME="$(git config user.name)"
-  --env GIT_AUTHOR_EMAIL="$(git config user.email)"
-  --env GIT_COMMITTER_NAME="$(git config user.name)"
-  --env GIT_COMMITTER_EMAIL="$(git config user.email)"
+  # Committer vars too: git refuses to commit knowing only the author.
+  --env GIT_AUTHOR_NAME="$git_name"
+  --env GIT_AUTHOR_EMAIL="$git_email"
+  --env GIT_COMMITTER_NAME="$git_name"
+  --env GIT_COMMITTER_EMAIL="$git_email"
 )
 container run "${run_args[@]}" "$img_tag" "$@"
