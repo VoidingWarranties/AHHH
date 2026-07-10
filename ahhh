@@ -10,11 +10,13 @@ keychain_service="ahhh-claude-oauth-token"
 usage() {
   cat >&2 <<EOF
 usage: ahhh build [--update]
-       ahhh run <env-name> [command...]
+       ahhh run [--read-only] <env-name> [command...]
 
-build  (re)build the image; --update refreshes the base image and packages
+build  (re)build the image
+           --update             refreshes the base image and packages
 run    run a command (default: claude --dangerously-skip-permissions) in an
        ephemeral environment, building the image if it is missing
+           --read-only          mounts the current directory read-only
 EOF
   exit 1
 }
@@ -48,6 +50,15 @@ cmd_build() {
 }
 
 cmd_run() {
+  read_only=''
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --read-only) read_only='true' ;;
+      -*) usage ;;
+      *) break ;;
+    esac
+    shift
+  done
   [ $# -ge 1 ] || usage
   env_name="ahhh-$1"; shift
   [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
@@ -85,7 +96,7 @@ EOF
     --tmpfs /nix
     --init
     --memory 4G
-    --volume "$PWD":/workspace
+    --mount "source=$PWD,target=/workspace${read_only:+,readonly}"
     --cwd /workspace
     # Claude-specific env vars.
     --env CLAUDE_CODE_OAUTH_TOKEN
