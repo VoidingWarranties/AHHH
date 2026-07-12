@@ -11,7 +11,7 @@ claude_md_glbl=''  # set by --claude-md; empty means the host's global CLAUDE.md
 usage() {
   cat >&2 <<EOF
 usage: ahhh build [--update] [--claude-md <file>]
-       ahhh run [--read-only] <env-name> [command...]
+       ahhh run [--read-only] [--memory <size>] <env-name> [command...]
 
 
 build  (re)build the image
@@ -21,6 +21,7 @@ build  (re)build the image
 run    run a command (default: claude --dangerously-skip-permissions) in an
        ephemeral environment, building the image if it is missing
            --read-only          mounts the current directory read-only
+           --memory <size>      RAM for the env (default: 4G)
 
 EOF
   exit 1
@@ -59,9 +60,11 @@ cmd_build() {
 
 cmd_run() {
   read_only=''
+  memory='4G'
   while [ $# -gt 0 ]; do
     case "$1" in
       --read-only) read_only='true' ;;
+      --memory) [ $# -ge 2 ] || usage; memory="$2"; shift ;;
       -*) usage ;;
       *) break ;;
     esac
@@ -103,7 +106,7 @@ EOF
     --tmpfs /home/agent
     --tmpfs /nix
     --init
-    --memory 4G
+    --memory "$memory"
     --mount "source=$PWD,target=/workspace${read_only:+,readonly}"
     --cwd /workspace
     # Claude-specific env vars.
