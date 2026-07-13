@@ -33,6 +33,7 @@ build_image() {
     claude_md_glbl="$HOME/.claude/CLAUDE.md"
     [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
   fi
+  local claude_md_copy
   claude_md_copy="$ctx_dir/home/.claude/HOST_CLAUDE.md"
   # Avoid potential symlink shenanigans and rm before copying.
   rm -f "$claude_md_copy"
@@ -42,7 +43,8 @@ build_image() {
 }
 
 cmd_build() {
-  update=''
+  local update=''
+
   while [ $# -gt 0 ]; do
     case "$1" in
       --update) update='true' ;;
@@ -59,8 +61,9 @@ cmd_build() {
 }
 
 cmd_run() {
-  read_only=''
-  memory='4G'
+  local memory='4G'
+  local read_only=''
+
   while [ $# -gt 0 ]; do
     case "$1" in
       --read-only) read_only='true' ;;
@@ -71,6 +74,7 @@ cmd_run() {
     shift
   done
   [ $# -ge 1 ] || usage
+  # Not a local var so that the trap can reference it.
   env_name="ahhh-$1"; shift
   [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
 
@@ -78,7 +82,10 @@ cmd_run() {
   # - Current dir is a git repo.
   git rev-parse --show-toplevel > /dev/null
 
-  export CLAUDE_CODE_OAUTH_TOKEN="$(security find-generic-password -s "$keychain_service" -w)" || {
+  local CLAUDE_CODE_OAUTH_TOKEN
+  CLAUDE_CODE_OAUTH_TOKEN="$(
+    security find-generic-password -s "$keychain_service" -w
+  )" || {
     cat >&2 <<EOF
 No Claude OAuth token in the Keychain. One-time setup:
   1. Run: claude setup-token
@@ -87,14 +94,18 @@ No Claude OAuth token in the Keychain. One-time setup:
 EOF
     exit 1
   }
+  export CLAUDE_CODE_OAUTH_TOKEN
 
   container system start
   container image inspect "$img_tag" > /dev/null 2>&1 || build_image
   container network create "$env_name"
   trap 'container network delete "$env_name" > /dev/null' EXIT
   # Effective (not --global) config so includeIf/local overrides apply.
+  local git_name
   git_name="$(git config user.name)"
+  local git_email
   git_email="$(git config user.email)"
+  local -a run_args
   run_args=(
     --rm -it
     --name "$env_name"
