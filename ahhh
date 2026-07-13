@@ -48,7 +48,11 @@ cmd_build() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --update) update='true' ;;
-      --claude-md) [ $# -ge 2 ] || usage; claude_md_glbl="$2"; shift ;;
+      --claude-md)
+        [ $# -ge 2 ] || usage
+        claude_md_glbl="$2"
+        shift
+        ;;
       *) usage ;;
     esac
     shift
@@ -67,7 +71,11 @@ cmd_run() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --read-only) read_only='true' ;;
-      --memory) [ $# -ge 2 ] || usage; memory="$2"; shift ;;
+      --memory)
+        [ $# -ge 2 ] || usage
+        memory="$2"
+        shift
+        ;;
       -*) usage ;;
       *) break ;;
     esac
@@ -75,7 +83,8 @@ cmd_run() {
   done
   [ $# -ge 1 ] || usage
   # Not a local var so that the trap can reference it.
-  env_name="ahhh-$1"; shift
+  env_name="ahhh-$1"
+  shift
   [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
 
   # Validate preconditions:
@@ -139,7 +148,13 @@ EOF
 }
 
 case "${1-}" in
-  build) shift; cmd_build "$@" ;;
-  run) shift; cmd_run "$@" ;;
+  build)
+    shift
+    cmd_build "$@"
+    ;;
+  run)
+    shift
+    cmd_run "$@"
+    ;;
   *) usage ;;
 esac
