@@ -34,6 +34,11 @@ RUN apk add --no-cache gawk \
     CODEX_HOME=/usr/local/share/codex \
     CODEX_NON_INTERACTIVE=1 sh \
   && rm -rf /usr/local/share/codex/tmp
+COPY --parents home/./.codex /usr/share/ahhh/
+# Append the host's AGENTS.md to the environment's AGENTS.md.
+# Remove when AGENTS.md supports @file references like CLAUDE.md does.
+RUN cat /usr/share/ahhh/.codex/HOST_AGENTS.md >> /usr/share/ahhh/.codex/AGENTS.md \
+  && rm /usr/share/ahhh/.codex/HOST_AGENTS.md
 # Be extra cautious and error if any setuid binaries are found. This check must
 # be the last RUN to be effective.
 RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
@@ -51,11 +56,11 @@ RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
   && echo "395759c1f7449ef4cdef305a42e820f3c766d6090d142634ebdb049f113168b6 /etc/apk/keys/claude-code.rsa.pub" | sha256sum -c - \
   && echo "https://downloads.claude.ai/claude-code/apk/stable" >> /etc/apk/repositories \
   && apk add --no-cache claude-code
+ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+COPY --parents home/./.claude* /usr/share/ahhh/
 # Be extra cautious and error if any setuid binaries are found. This check must
 # be the last RUN to be effective.
 RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
   [ -z "${setuidbins-x}" ] || { printf 'ERROR: setuid binaries present:\n%s\n' "$setuidbins" >&2; exit 1; }
-COPY home/ /usr/share/ahhh/
-ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 USER agent
 WORKDIR /home/agent

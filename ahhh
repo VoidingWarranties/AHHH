@@ -8,6 +8,7 @@ readonly CTX_DIR
 readonly KEYCHAIN_SERVICE='ahhh-claude-oauth-token'
 export CLAUDE_CODE_OAUTH_TOKEN
 claude_md_glbl=''  # set by --claude-md; empty means the host's global CLAUDE.md
+codex_md_glbl=''   # set by --codex-md; empty means the host's global AGENTS.md
 
 usage() {
   cat >&2 <<EOF
@@ -20,12 +21,13 @@ build  (re)build the image
            --codex              build the Codex image
            --update             refreshes the base image and packages
            --claude-md <file>   global CLAUDE.md (default: ~/.claude/CLAUDE.md)
+           --codex-md  <file>   global AGENTS.md (default: ~/.codex/AGENTS.md)
 
 run    run a command in an ephemeral environment
            --claude             use Claude (default)
            --codex              use Codex
            --read-only          mounts the current directory read-only
-           --memory <size>      RAM for the env (default: 4G)
+           --memory    <size>   RAM for the env (default: 4G)
 
 EOF
   exit 1
@@ -42,20 +44,33 @@ build_image() {
   img_tag="$(image_for_agent "$agent")"
 
   # Copy the host's global agent configs into the image's $HOME seed.
+  local md_glbl
+  local md_copy
   case "$agent" in
     claude)
       if [ -z "$claude_md_glbl" ]; then
         claude_md_glbl="$HOME/.claude/CLAUDE.md"
         [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
       fi
-      local claude_md_copy
-      claude_md_copy="$CTX_DIR/home/.claude/HOST_CLAUDE.md"
-      # Avoid potential symlink shenanigans and rm before copying.
-      rm -f "$claude_md_copy"
-      install -m 644 "$claude_md_glbl" "$claude_md_copy"
+      md_glbl="$claude_md_glbl"
+      md_copy="$CTX_DIR/home/.claude/HOST_CLAUDE.md"
       ;;
-    codex) ;;
+    codex)
+      if [ -z "$codex_md_glbl" ]; then
+        codex_md_glbl="$HOME/.codex/AGENTS.md"
+        [ -f "$codex_md_glbl" ] || codex_md_glbl=/dev/null
+      fi
+      md_glbl="$codex_md_glbl"
+      md_copy="$CTX_DIR/home/.codex/HOST_AGENTS.md"
+      ;;
+    *)
+      >&2 echo "bug: unknown agent '${agent}'"
+      exit 2
+      ;;
   esac
+  # Avoid potential symlink shenanigans and rm before copying.
+  rm -f "$md_copy"
+  install -m 644 "$md_glbl" "$md_copy"
 
   container build "$@" --target "$agent" -t "$img_tag" \
     --file "$CTX_DIR/Containerfile" "$CTX_DIR"
@@ -77,6 +92,11 @@ cmd_build() {
       --claude-md)
         [ $# -ge 2 ] || usage
         claude_md_glbl="$2"
+        shift
+        ;;
+      --codex-md)
+        [ $# -ge 2 ] || usage
+        codex_md_glbl="$2"
         shift
         ;;
       *)
