@@ -26,6 +26,7 @@ build  (re)build the image
 run    run a command in an ephemeral environment
            --claude             use Claude (default)
            --codex              use Codex
+           --allow-non-git      allow running outside a Git repository
            --read-only          mounts the current directory read-only
            --memory    <size>   RAM for the env (default: 4G)
 
@@ -115,6 +116,7 @@ cmd_build() {
 
 cmd_run() {
   local agent=''
+  local allow_non_git=''
   local memory='4G'
   local read_only=''
 
@@ -123,6 +125,9 @@ cmd_run() {
       --claude|--codex)
         [ -z "$agent" ] || usage
         agent="${1#--}"
+        ;;
+      --allow-non-git)
+        allow_non_git='true'
         ;;
       --read-only)
         read_only='true'
@@ -162,8 +167,10 @@ cmd_run() {
   fi
 
   # Validate preconditions:
-  # - Current dir is a git repo.
-  git rev-parse --show-toplevel > /dev/null
+  # - Current dir is a git repo unless explicitly allowed otherwise.
+  if [ "$allow_non_git" != 'true' ]; then
+    git rev-parse --show-toplevel > /dev/null
+  fi
 
   case "$agent" in
     claude)

@@ -22,7 +22,7 @@ ephemeral isolated environments using Apple's Container tool.
   - [x] Trusts the current directory
   - [x] Skips the --dangerously-skip-permissions check
 - [x] Set GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} based on the host's git config.
-- [x] Error if the current directory is not a git repo.
+- [x] Require a git repo unless `ahhh run` uses `--allow-non-git`.
 - [x] Provide Nix to agents for isolated package management.
 - [x] Global CLAUDE.md describing the environment.
 
