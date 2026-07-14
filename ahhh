@@ -5,23 +5,25 @@ set -euo pipefail
 # from a symlink.
 CTX_DIR="$(dirname "$(realpath "$0")")/image"
 readonly CTX_DIR
-readonly IMG_TAG='ahhh-base'
 readonly KEYCHAIN_SERVICE='ahhh-claude-oauth-token'
 export CLAUDE_CODE_OAUTH_TOKEN
 claude_md_glbl=''  # set by --claude-md; empty means the host's global CLAUDE.md
 
 usage() {
   cat >&2 <<EOF
-usage: ahhh build [--update] [--claude-md <file>]
-       ahhh run [--read-only] [--memory <size>] <env-name> [command...]
+usage: ahhh build [<options>]
+       ahhh run   [<options>] <env-name> [command...]
 
 
 build  (re)build the image
+           --claude             build the Claude image (default)
+           --codex              build the Codex image
            --update             refreshes the base image and packages
            --claude-md <file>   global CLAUDE.md (default: ~/.claude/CLAUDE.md)
 
-run    run a command (default: claude --dangerously-skip-permissions) in an
-       ephemeral environment, building the image if it is missing
+run    run a command in an ephemeral environment
+           --claude             use Claude (default)
+           --codex              use Codex
            --read-only          mounts the current directory read-only
            --memory <size>      RAM for the env (default: 4G)
 
@@ -29,84 +31,142 @@ EOF
   exit 1
 }
 
-build_image() {
-  # Copy the host's global agent configs into the image's $HOME seed.
-  if [ -z "$claude_md_glbl" ]; then
-    claude_md_glbl="$HOME/.claude/CLAUDE.md"
-    [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
-  fi
-  local claude_md_copy
-  claude_md_copy="$CTX_DIR/home/.claude/HOST_CLAUDE.md"
-  # Avoid potential symlink shenanigans and rm before copying.
-  rm -f "$claude_md_copy"
-  install -m 644 "$claude_md_glbl" "$claude_md_copy"
+image_for_agent() {
+  echo "ahhh-$1"
+}
 
-  container build "$@" -t "$IMG_TAG" --file "$CTX_DIR/Containerfile" "$CTX_DIR"
+build_image() {
+  local agent="$1"
+  shift
+  local img_tag
+  img_tag="$(image_for_agent "$agent")"
+
+  # Copy the host's global agent configs into the image's $HOME seed.
+  case "$agent" in
+    claude)
+      if [ -z "$claude_md_glbl" ]; then
+        claude_md_glbl="$HOME/.claude/CLAUDE.md"
+        [ -f "$claude_md_glbl" ] || claude_md_glbl=/dev/null
+      fi
+      local claude_md_copy
+      claude_md_copy="$CTX_DIR/home/.claude/HOST_CLAUDE.md"
+      # Avoid potential symlink shenanigans and rm before copying.
+      rm -f "$claude_md_copy"
+      install -m 644 "$claude_md_glbl" "$claude_md_copy"
+      ;;
+    codex) ;;
+  esac
+
+  container build "$@" --target "$agent" -t "$img_tag" \
+    --file "$CTX_DIR/Containerfile" "$CTX_DIR"
 }
 
 cmd_build() {
+  local agent=''
   local update=''
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      --update) update='true' ;;
+      --claude|--codex)
+        [ -z "$agent" ] || usage
+        agent="${1#--}"
+        ;;
+      --update)
+        update='true'
+        ;;
       --claude-md)
         [ $# -ge 2 ] || usage
         claude_md_glbl="$2"
         shift
         ;;
-      *) usage ;;
+      *)
+        usage
+        ;;
     esac
     shift
   done
+  agent="${agent:-claude}"
   # --no-cache reruns every step; --pull stops FROM resolving to a stale
   # locally cached base image.
   [ "$update" != 'true' ] || set -- --no-cache --pull
   container system start
-  build_image "$@"
+  build_image "$agent" "$@"
 }
 
 cmd_run() {
+  local agent=''
   local memory='4G'
   local read_only=''
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      --read-only) read_only='true' ;;
+      --claude|--codex)
+        [ -z "$agent" ] || usage
+        agent="${1#--}"
+        ;;
+      --read-only)
+        read_only='true'
+        ;;
       --memory)
         [ $# -ge 2 ] || usage
         memory="$2"
         shift
         ;;
-      -*) usage ;;
-      *) break ;;
+      -*)
+        usage
+        ;;
+      *)
+        break
+        ;;
     esac
     shift
   done
+  agent="${agent:-claude}"
   [ $# -ge 1 ] || usage
   # Not a local var so that the trap can reference it.
   env_name="ahhh-$1"
   shift
-  [ $# -gt 0 ] || set -- claude --dangerously-skip-permissions
+  if [ $# -eq 0 ]; then
+    case "$agent" in
+      claude)
+        set -- claude --dangerously-skip-permissions
+        ;;
+      codex)
+        set -- codex --dangerously-bypass-approvals-and-sandbox
+        ;;
+      *)
+        >&2 echo "bug: unknown agent '${agent}'"
+        exit 2
+        ;;
+    esac
+  fi
 
   # Validate preconditions:
   # - Current dir is a git repo.
   git rev-parse --show-toplevel > /dev/null
 
-  CLAUDE_CODE_OAUTH_TOKEN="$(
-    security find-generic-password -s "$KEYCHAIN_SERVICE" -w
-  )" || {
-    cat >&2 <<EOF
+  case "$agent" in
+    claude)
+      CLAUDE_CODE_OAUTH_TOKEN="$(
+        security find-generic-password -s "$KEYCHAIN_SERVICE" -w
+      )" || {
+        cat >&2 <<EOF
 No Claude OAuth token in the Keychain. One-time setup:
   1. Run: claude setup-token
   2. Store the printed token:
      security add-generic-password -U -s $KEYCHAIN_SERVICE -a "\$USER" -w
 EOF
-    exit 1
-  }
+        exit 1
+      }
+      ;;
+    codex)
+      ;;
+  esac
 
   container system start
-  container image inspect "$IMG_TAG" > /dev/null 2>&1 || build_image
+  local img_tag
+  img_tag="$(image_for_agent "$agent")"
+  container image inspect "$img_tag" > /dev/null 2>&1 || build_image "$agent"
   container network create "$env_name"
   trap 'container network delete "$env_name" > /dev/null' EXIT
   # Effective (not --global) config so includeIf/local overrides apply.
@@ -129,11 +189,6 @@ EOF
     --memory "$memory"
     --mount "source=$PWD,target=/workspace${read_only:+,readonly}"
     --cwd /workspace
-    # Claude-specific env vars.
-    --env CLAUDE_CODE_OAUTH_TOKEN
-    --env ANTHROPIC_MODEL
-    --env CLAUDE_CODE_EFFORT_LEVEL
-    --env CLAUDE_CODE_SUBAGENT_MODEL
     # Forward terminal env vars needed to make it look good.
     --env TERM
     --env COLORTERM
@@ -144,7 +199,19 @@ EOF
     --env GIT_COMMITTER_NAME="$git_name"
     --env GIT_COMMITTER_EMAIL="$git_email"
   )
-  container run "${run_args[@]}" "$IMG_TAG" "$@"
+  case "$agent" in
+    claude)
+      run_args+=(
+        --env CLAUDE_CODE_OAUTH_TOKEN
+        --env ANTHROPIC_MODEL
+        --env CLAUDE_CODE_EFFORT_LEVEL
+        --env CLAUDE_CODE_SUBAGENT_MODEL
+      )
+      ;;
+    codex)
+      ;;
+  esac
+  container run "${run_args[@]}" "$img_tag" "$@"
 }
 
 case "${1-}" in
@@ -156,5 +223,7 @@ case "${1-}" in
     shift
     cmd_run "$@"
     ;;
-  *) usage ;;
+  *)
+    usage
+    ;;
 esac

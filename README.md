@@ -31,21 +31,22 @@ ephemeral isolated environments using Apple's Container tool.
   - [x] env vars, e.g. `ANTHROPIC_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, and
         `CLAUDE_CODE_EFFORT_LEVEL`
   - [x] Host's global CLAUDE.md
+- [x] Support for other harnesses.
 - [ ] Assign a container its name, description, and color for differentiation
 
 ### P2
+- [ ] Codex login persist
 - [ ] Persistent nix store that's shared by all environments.
+- [ ] Automate my git worktree workflow.
+- [ ] Fork a container to copy the agent transcript and current container
+      state. between environments.
+
+### P3
+- [ ] Secure storage of agent authentication OAuth token on host machine
+      (i.e. integrate as a Secure Enclave backed Keychain entry)
 - [ ] Auth proxy so no credentials are exposed to containers.
   - [ ] LLM creds.
   - [ ] Version control creds. By default don't give the environment VCS creds
         (or an opaque pointer to VCS creds).
-- [ ] Automate my git worktree workflow.
-- [ ] Fork a container to copy the agent transcript and current container
-      state. between environments.
 - [ ] Add config to allow auto updating image every x days (if not using NixOS,
       not sure this is compatible with NixOS).
-
-### P3
-- [ ] Support for other harnesses.
-- [ ] Secure storage of agent authentication OAuth token on host machine
-      (i.e. integrate as a Secure Enclave backed Keychain entry)

@@ -1,4 +1,5 @@
-FROM alpine:3
+FROM alpine:3 AS base
+SHELL ["/bin/ash", "-euo", "pipefail", "-c"]
 RUN apk add --no-cache ca-certificates git bash curl earlyoom
 # Non-root user matching the --uid and --gid flags passed to `container run` in
 # ahhh. Creating the passwd/group entry keeps tools that read $HOME / look up
@@ -15,6 +16,34 @@ RUN printf '%s\n' \
     'sandbox-fallback = false' \
     'store = local' \
     > /etc/nix/nix.conf
+COPY --chmod=0755 entrypoint /usr/local/bin/entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+# The entrypoint copies the contents of this directory into $HOME after $HOME
+# is mounted as a read-write tmpfs.
+RUN mkdir -p /usr/share/ahhh
+ENV SHELL=/bin/bash
+
+# Codex image.
+FROM base AS codex
+# Keep the standalone Codex package outside $HOME: ahhh mounts $HOME as tmpfs
+# at runtime. These variables apply only to the installer, so Codex still uses
+# the agent's writable $HOME/.codex for runtime state.
+RUN apk add --no-cache gawk \
+  && curl -fsSL https://chatgpt.com/codex/install.sh \
+  | CODEX_INSTALL_DIR=/usr/local/bin \
+    CODEX_HOME=/usr/local/share/codex \
+    CODEX_NON_INTERACTIVE=1 sh \
+  && rm -rf /usr/local/share/codex/tmp
+# Be extra cautious and error if any setuid binaries are found. This check must
+# be the last RUN to be effective.
+RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
+  [ -z "${setuidbins-x}" ] || { printf 'ERROR: setuid binaries present:\n%s\n' "$setuidbins" >&2; exit 1; }
+USER agent
+WORKDIR /home/agent
+
+# Claude image. Keep this stage last so builds without --target continue to
+# produce the historical Claude image.
+FROM base AS claude
 # Signature checksum is from Anthropic's Advanced Setup guide:
 # https://code.claude.com/docs/en/setup#apk
 RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
@@ -26,10 +55,7 @@ RUN wget -O /etc/apk/keys/claude-code.rsa.pub \
 # be the last RUN to be effective.
 RUN setuidbins="$(find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null)"; \
   [ -z "${setuidbins-x}" ] || { printf 'ERROR: setuid binaries present:\n%s\n' "$setuidbins" >&2; exit 1; }
-COPY --chmod=0755 entrypoint /usr/local/bin/entrypoint
-ENTRYPOINT ["/usr/local/bin/entrypoint"]
 COPY home/ /usr/share/ahhh/
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-ENV SHELL=/bin/bash
 USER agent
 WORKDIR /home/agent
