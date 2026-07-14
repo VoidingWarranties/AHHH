@@ -28,7 +28,7 @@ FROM base AS codex
 # Keep the standalone Codex package outside $HOME: ahhh mounts $HOME as tmpfs
 # at runtime. These variables apply only to the installer, so Codex still uses
 # the agent's writable $HOME/.codex for runtime state.
-RUN apk add --no-cache gawk \
+RUN apk add --no-cache gawk ripgrep \
   && curl -fsSL https://chatgpt.com/codex/install.sh \
   | CODEX_INSTALL_DIR=/usr/local/bin \
     CODEX_HOME=/usr/local/share/codex \
