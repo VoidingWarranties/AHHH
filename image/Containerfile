@@ -10,7 +10,7 @@ RUN addgroup -g 1000 agent && adduser -D -u 1000 -G agent agent
 RUN apk add --no-cache --no-scripts nix \
   && rm /etc/profile.d/nix-remote.sh /etc/profile.d/nix-daemon.sh /usr/sbin/nix-daemon
 # Replace apk's daemon-oriented config. `store = local` makes non-root nix use
-# the /nix tmpfs mounted by ahhh instead of a chroot store under $HOME.
+# the /nix volume mounted by ahhh instead of a chroot store under $HOME.
 RUN printf '%s\n' \
     'experimental-features = nix-command flakes' \
     'sandbox-fallback = false' \
@@ -19,15 +19,15 @@ RUN printf '%s\n' \
 COPY --chmod=0755 entrypoint /usr/local/bin/entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
 # The entrypoint copies the contents of this directory into $HOME after $HOME
-# is mounted as a read-write tmpfs.
+# is mounted as a read-write volume.
 RUN mkdir -p /usr/share/ahhh
 ENV SHELL=/bin/bash
 
 # Codex image.
 FROM base AS codex
-# Keep the standalone Codex package outside $HOME: ahhh mounts $HOME as tmpfs
-# at runtime. These variables apply only to the installer, so Codex still uses
-# the agent's writable $HOME/.codex for runtime state.
+# Keep the standalone Codex package outside $HOME: ahhh mounts $HOME as a
+# volume at runtime. These variables apply only to the installer, so Codex
+# still uses the agent's writable $HOME/.codex for runtime state.
 RUN apk add --no-cache gawk ripgrep \
   && curl -fsSL https://chatgpt.com/codex/install.sh \
   | CODEX_INSTALL_DIR=/usr/local/bin \

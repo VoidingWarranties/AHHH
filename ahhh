@@ -114,6 +114,11 @@ cmd_build() {
   build_image "$agent" "$@"
 }
 
+cleanup() {
+  container volume delete "$env_name-home" "$env_name-nix" > /dev/null || :
+  container network delete "$env_name" > /dev/null || :
+}
+
 cmd_run() {
   local agent=''
   local allow_non_git=''
@@ -194,8 +199,23 @@ EOF
   local img_tag
   img_tag="$(image_for_agent "$agent")"
   container image inspect "$img_tag" > /dev/null 2>&1 || build_image "$agent"
+  # Trap before creating so a partial failure still cleans up.
+  trap cleanup EXIT
   container network create "$env_name"
-  trap 'container network delete "$env_name" > /dev/null' EXIT
+  container volume create -s 64G "$env_name-home"
+  container volume create -s 64G "$env_name-nix"
+  # Fresh volumes are root-owned ext4 with a lost+found dir: rm it so the
+  # entrypoint's empty-$HOME check holds, and chown for the agent uid.
+  container run --rm \
+    --network "$env_name" \
+    --uid 0 --gid 0 \
+    --cap-drop ALL \
+    --cap-add CHOWN \
+    --read-only \
+    --entrypoint /bin/sh \
+    --volume "$env_name-home:/home/agent" \
+    --volume "$env_name-nix:/nix" \
+    "$img_tag" -euc 'rm -rf /home/agent/lost+found /nix/lost+found && chown 1000:1000 /home/agent /nix'
   # Effective (not --global) config so includeIf/local overrides apply.
   local git_name
   git_name="$(git config user.name)"
@@ -210,8 +230,8 @@ EOF
     --cap-drop ALL
     --read-only
     --tmpfs /tmp
-    --tmpfs /home/agent
-    --tmpfs /nix
+    --volume "$env_name-home:/home/agent"
+    --volume "$env_name-nix:/nix"
     --init
     --memory "$memory"
     --mount "source=$PWD,target=/workspace${read_only:+,readonly}"
