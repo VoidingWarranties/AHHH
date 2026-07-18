@@ -29,6 +29,7 @@ run    run a command in an ephemeral environment
            --allow-non-git      allow running outside a Git repository
            --read-only          mounts the current directory read-only
            --memory    <size>   RAM for the env (default: 4G)
+           --cpus      <count>  CPUs for the env
 
 EOF
   exit 1
@@ -123,6 +124,7 @@ cmd_run() {
   local agent=''
   local allow_non_git=''
   local memory='4G'
+  local cpus=''
   local read_only=''
 
   while [ $# -gt 0 ]; do
@@ -140,6 +142,11 @@ cmd_run() {
       --memory)
         [ $# -ge 2 ] || usage
         memory="$2"
+        shift
+        ;;
+      --cpus)
+        [ $# -ge 2 ] || usage
+        cpus="$2"
         shift
         ;;
       -*)
@@ -246,6 +253,7 @@ EOF
     --env GIT_COMMITTER_NAME="$git_name"
     --env GIT_COMMITTER_EMAIL="$git_email"
   )
+  [ -z "$cpus" ] || run_args+=(--cpus "$cpus")
   case "$agent" in
     claude)
       run_args+=(
